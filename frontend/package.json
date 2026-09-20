@@ -1,12 +1,11 @@
 {
-  "name": "my-project",
+  "name": "invoicing-frontend",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@12.3.4",
   "scripts": {
-    "dev": "node ./node_modules/next/dist/bin/next dev --webpack",
-    "build": "node ./node_modules/next/dist/bin/next build --webpack",
-    "start": "node ./node_modules/next/dist/bin/next start"
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
