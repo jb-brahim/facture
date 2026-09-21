@@ -1106,7 +1106,7 @@ export default function InvoicingApp() {
         }`}
       >
         <div className="flex h-20 items-center gap-3 border-b border-slate-100 px-6">
-          <img src="/app-logo.jpg" alt="Logo" className="size-10 rounded-xl object-cover shadow-sm ring-1 ring-slate-200/80" />
+          <img src="/app-logo.png" alt="Logo" className="size-10 rounded-xl object-cover shadow-sm ring-1 ring-slate-200/80" />
             <p className="text-base font-bold tracking-tight text-slate-900">Invoix</p>
             <p className="text-[10px] font-medium uppercase tracking-widest text-indigo-600 font-semibold">Billing Platform</p>
           <button onClick={() => setMobileNav(false)} className="ml-auto rounded-md p-1 text-slate-400 lg:hidden">
@@ -1175,7 +1175,7 @@ export default function InvoicingApp() {
             <button onClick={() => setMobileNav(true)} className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-100 lg:hidden">
               <SlidersHorizontal className="size-5" />
             </button>
-            <img src="/app-logo.jpg" alt="Logo" className="size-9 rounded-xl object-cover shadow-xs ring-1 ring-slate-200" />
+            <img src="/app-logo.png" alt="Logo" className="size-9 rounded-xl object-cover shadow-xs ring-1 ring-slate-200" />
             <div className="flex flex-col">
               <p className="text-sm font-bold text-slate-900 leading-tight">Invoix</p>
               <p className="text-[10px] font-semibold text-indigo-600 tracking-wider">Billing Platform</p>
@@ -2380,7 +2380,7 @@ export default function InvoicingApp() {
         <div className="fixed top-4 inset-x-4 sm:left-auto sm:right-6 sm:max-w-md z-[110] flex items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-white p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-6 duration-300">
           <div className="flex items-center gap-3">
             <div className="flex size-11 shrink-0 items-center justify-center rounded-xl overflow-hidden shadow-xs ring-1 ring-slate-200">
-              <img src="/app-logo.jpg" alt="App Logo" className="size-full object-cover" />
+              <img src="/app-logo.png" alt="App Logo" className="size-full object-cover" />
             </div>
             <div>
               <p className="text-sm font-bold text-slate-900">Install Invoix App</p>
