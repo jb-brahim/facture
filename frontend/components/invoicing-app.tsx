@@ -56,10 +56,11 @@ import {
   removeToken,
 } from '@/lib/api'
 
-// Currency formatter for TND
+// Multi-currency formatter helper
 function formatCurrency(amount: number | string = 0, currency = 'TND'): string {
   const num = typeof amount === 'string' ? parseFloat(amount) || 0 : amount
-  return `${num.toLocaleString('fr-TN', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ${currency}`
+  const decimals = ['TND', 'KWD', 'BHD', 'OMR', 'JOD'].includes(currency) ? 3 : 2
+  return `${num.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })} ${currency}`
 }
 
 const WORLD_COUNTRIES = [
@@ -404,11 +405,13 @@ function ProductSelectPopover({
   value,
   onChange,
   onAddNewProduct,
+  currency,
 }: {
   products: any[]
   value: string
   onChange: (productId: string, price?: number) => void
   onAddNewProduct: (initialName?: string) => void
+  currency?: string
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -514,7 +517,7 @@ function ProductSelectPopover({
                   <span>{p.name}</span>
                 </div>
                 <div className="text-[11px] text-slate-400">
-                  {formatCurrency(p.sellingPrice)} • Stock: {p.stockQuantity}
+                  {formatCurrency(p.sellingPrice, currency)} • Stock: {p.stockQuantity}
                 </div>
               </div>
               {value === p._id && <span className="text-xs font-bold text-indigo-600">✓</span>}
@@ -598,6 +601,51 @@ export default function InvoicingApp() {
       setToast(null)
     }, 4000)
   }, [])
+
+  // Notification Center State
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [notifications, setNotifications] = useState<Array<{ id: string; title: string; message: string; time: string; type: string; read: boolean }>>([
+    {
+      id: 'n1',
+      title: 'Invoice Payment Due',
+      message: 'Invoice INV-2026-000001 has 11,925 TND payment pending',
+      time: '10m ago',
+      type: 'invoice',
+      read: false,
+    },
+    {
+      id: 'n2',
+      title: 'New Customer Registered',
+      message: 'dfg Customer was added to directory',
+      time: '1h ago',
+      type: 'user',
+      read: false,
+    },
+    {
+      id: 'n3',
+      title: 'Invoix PWA Active',
+      message: 'Service worker ready for offline use & 1-tap desktop access',
+      time: '2h ago',
+      type: 'system',
+      read: true,
+    },
+  ])
+
+  const unreadCount = notifications.filter((n) => !n.read).length
+
+  const markAllNotificationsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
+    showToast('All notifications marked as read', 'info')
+  }
+
+  const markNotificationRead = (id: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)))
+  }
+
+  const clearNotification = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setNotifications((prev) => prev.filter((n) => n.id !== id))
+  }
 
   // PWA Install Prompt State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
@@ -1183,11 +1231,104 @@ export default function InvoicingApp() {
               <span className="text-[10px] font-semibold text-slate-400 tracking-wider uppercase mt-1">Billing Platform</span>
             </div>
           </div>
-          <div className="flex items-center gap-2.5">
-            <button title="Notifications" className="relative rounded-full p-2 text-slate-500 hover:bg-slate-100 transition-colors">
+          <div className="relative flex items-center gap-2.5">
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              title="Notifications"
+              className="relative rounded-full p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+            >
               <Bell className="size-5" />
-              <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-indigo-600" />
+              {unreadCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 flex size-4 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white shadow-xs">
+                  {unreadCount}
+                </span>
+              )}
             </button>
+
+            {/* NOTIFICATION POPOVER DROPDOWN */}
+            {showNotifications && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowNotifications(false)}
+                />
+                <div className="absolute right-0 top-12 z-50 w-80 sm:w-96 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-slate-900">Notifications</h3>
+                      {unreadCount > 0 && (
+                        <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-600">
+                          {unreadCount} unread
+                        </span>
+                      )}
+                    </div>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllNotificationsRead}
+                        className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
+                    {notifications.length === 0 ? (
+                      <div className="py-8 text-center text-slate-400">
+                        <Bell className="mx-auto size-8 opacity-40 mb-2" />
+                        <p className="text-xs">No notifications right now</p>
+                      </div>
+                    ) : (
+                      notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          onClick={() => markNotificationRead(n.id)}
+                          className={`group relative flex items-start gap-3 rounded-xl p-3 text-left transition-all cursor-pointer ${
+                            n.read
+                              ? 'bg-slate-50/50 hover:bg-slate-100/80'
+                              : 'bg-indigo-50/40 hover:bg-indigo-50/70 border border-indigo-100/50'
+                          }`}
+                        >
+                          <div
+                            className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg ${
+                              n.type === 'invoice'
+                                ? 'bg-indigo-100 text-indigo-600'
+                                : n.type === 'user'
+                                ? 'bg-emerald-100 text-emerald-600'
+                                : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            <FileText className="size-4" />
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <p className={`text-xs font-bold truncate ${n.read ? 'text-slate-700' : 'text-slate-900'}`}>
+                                {n.title}
+                              </p>
+                              <span className="text-[10px] text-slate-400 whitespace-nowrap">{n.time}</span>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{n.message}</p>
+                          </div>
+
+                          <button
+                            onClick={(e: React.MouseEvent) => clearNotification(n.id, e)}
+                            className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 p-1 rounded-md transition-opacity"
+                            title="Dismiss"
+                          >
+                            <X className="size-3.5" />
+                          </button>
+
+                          {!n.read && (
+                            <span className="absolute top-3 right-3 size-2 rounded-full bg-indigo-600 ring-2 ring-white" />
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
             <div className="flex size-9 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white shadow-xs">
               {user?.name ? user.name.slice(0, 2).toUpperCase() : 'DE'}
             </div>
@@ -1672,7 +1813,7 @@ export default function InvoicingApp() {
                             {getCountryDisplay(p.originCountry)}
                           </span>
                         </td>
-                        <td className="px-5 py-3.5 font-semibold text-slate-900">{formatCurrency(p.sellingPrice)}</td>
+                        <td className="px-5 py-3.5 font-semibold text-slate-900">{formatCurrency(p.sellingPrice, compCurrency || company?.defaultCurrency)}</td>
                         <td className="px-5 py-3.5 text-slate-600">{p.vatRate}%</td>
                         <td className="px-5 py-3.5 font-bold text-slate-800">{p.stockQuantity}</td>
                         <td className="px-5 py-3.5">
@@ -1731,9 +1872,9 @@ export default function InvoicingApp() {
                         <tr key={r._id}>
                           <td className="px-4 py-3 font-medium">{r._id}</td>
                           <td className="px-4 py-3">{r.invoiceCount}</td>
-                          <td className="px-4 py-3">{formatCurrency(r.totalSalesHT)}</td>
-                          <td className="px-4 py-3">{formatCurrency(r.totalVat)}</td>
-                          <td className="px-4 py-3 font-bold text-indigo-600">{formatCurrency(r.totalSalesTTC)}</td>
+                          <td className="px-4 py-3">{formatCurrency(r.totalSalesHT, compCurrency || company?.defaultCurrency)}</td>
+                          <td className="px-4 py-3">{formatCurrency(r.totalVat, compCurrency || company?.defaultCurrency)}</td>
+                          <td className="px-4 py-3 font-bold text-indigo-600">{formatCurrency(r.totalSalesTTC, compCurrency || company?.defaultCurrency)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1794,9 +1935,19 @@ export default function InvoicingApp() {
                       className="mt-1 w-full rounded-xl border border-slate-200 p-3 text-sm font-medium focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     >
                       <option value="TND">TND (Tunisian Dinar)</option>
-                      <option value="USD">USD (US Dollar)</option>
-                      <option value="EUR">EUR (Euro)</option>
-                      <option value="GBP">GBP (British Pound)</option>
+                      <option value="USD">USD (US Dollar $)</option>
+                      <option value="EUR">EUR (Euro €)</option>
+                      <option value="GBP">GBP (British Pound £)</option>
+                      <option value="CAD">CAD (Canadian Dollar)</option>
+                      <option value="AUD">AUD (Australian Dollar)</option>
+                      <option value="CHF">CHF (Swiss Franc)</option>
+                      <option value="DZD">DZD (Algerian Dinar)</option>
+                      <option value="MAD">MAD (Moroccan Dirham)</option>
+                      <option value="SAR">SAR (Saudi Riyal)</option>
+                      <option value="AED">AED (UAE Dirham)</option>
+                      <option value="EGP">EGP (Egyptian Pound)</option>
+                      <option value="QAR">QAR (Qatari Riyal)</option>
+                      <option value="KWD">KWD (Kuwaiti Dinar)</option>
                     </select>
                   </div>
                   <div>
@@ -1925,6 +2076,7 @@ export default function InvoicingApp() {
                       <ProductSelectPopover
                         products={products}
                         value={item.productId}
+                        currency={compCurrency || company?.defaultCurrency}
                         onChange={(pid, price) => {
                           const copy = [...invoiceItems]
                           copy[idx].productId = pid
@@ -2116,12 +2268,12 @@ export default function InvoicingApp() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-semibold text-slate-600">Selling Price (TND) *</label>
+                  <label className="text-xs font-semibold text-slate-600">Selling Price ({compCurrency || company?.defaultCurrency || 'TND'}) *</label>
                   <input
                     type="number"
                     step="0.001"
                     required
-                    placeholder="Selling Price (TND) *"
+                    placeholder={`Selling Price (${compCurrency || company?.defaultCurrency || 'TND'}) *`}
                     value={newProdPrice}
                     onChange={(e: any) => setNewProdPrice(e.target.value)}
                     className="mt-1 w-full rounded-xl border border-slate-200 p-3 text-sm font-medium focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
