@@ -1106,9 +1106,11 @@ export default function InvoicingApp() {
         }`}
       >
         <div className="flex h-20 items-center gap-3 border-b border-slate-100 px-6">
-          <img src="/app-logo.png" alt="Logo" className="size-10 rounded-xl object-cover shadow-sm ring-1 ring-slate-200/80" />
-            <p className="text-base font-bold tracking-tight text-slate-900">Invoix</p>
-            <p className="text-[10px] font-medium uppercase tracking-widest text-indigo-600 font-semibold">Billing Platform</p>
+          <img src="/app-logo.png" alt="Logo" className="size-10 rounded-xl object-contain shadow-xs" />
+          <div className="flex flex-col">
+            <span className="text-lg font-bold tracking-tight text-slate-900 leading-none">Invoix</span>
+            <span className="text-[10px] font-semibold text-slate-400 tracking-wider uppercase mt-1">Billing Platform</span>
+          </div>
           <button onClick={() => setMobileNav(false)} className="ml-auto rounded-md p-1 text-slate-400 lg:hidden">
             <X className="size-5" />
           </button>
@@ -1175,10 +1177,10 @@ export default function InvoicingApp() {
             <button onClick={() => setMobileNav(true)} className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-100 lg:hidden">
               <SlidersHorizontal className="size-5" />
             </button>
-            <img src="/app-logo.png" alt="Logo" className="size-9 rounded-xl object-cover shadow-xs ring-1 ring-slate-200" />
+            <img src="/app-logo.png" alt="Logo" className="size-9 rounded-xl object-contain shadow-xs" />
             <div className="flex flex-col">
-              <p className="text-sm font-bold text-slate-900 leading-tight">Invoix</p>
-              <p className="text-[10px] font-semibold text-indigo-600 tracking-wider">Billing Platform</p>
+              <span className="text-base font-bold text-slate-900 leading-none">Invoix</span>
+              <span className="text-[10px] font-semibold text-slate-400 tracking-wider uppercase mt-1">Billing Platform</span>
             </div>
           </div>
           <div className="flex items-center gap-2.5">
