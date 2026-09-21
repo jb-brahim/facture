@@ -17,12 +17,15 @@ import {
   Download,
   FileCheck2,
   FileText,
+  Filter,
   LayoutDashboard,
   Loader2,
   Lock,
   LogOut,
   Mail,
+  Minus,
   MoreHorizontal,
+  MoreVertical,
   Package,
   Pencil,
   Plus,
@@ -32,6 +35,7 @@ import {
   ShoppingCart,
   SlidersHorizontal,
   Trash2,
+  User,
   Users,
   WalletCards,
   X,
@@ -560,7 +564,7 @@ function StatusBadge({ status, type = 'status' }: { status: string; type?: 'stat
 export default function InvoicingApp() {
   const [user, setUser] = useState<any>(null)
   const [company, setCompany] = useState<any>(null)
-  const [active, setActive] = useState('Overview')
+  const [active, setActive] = useState('Invoices')
   const [mobileNav, setMobileNav] = useState(false)
   const [loading, setLoading] = useState(true)
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
@@ -579,6 +583,8 @@ export default function InvoicingApp() {
   const [customers, setCustomers] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [reports, setReports] = useState<any>(null)
+  const [invoiceSearchQuery, setInvoiceSearchQuery] = useState('')
+  const [showMobileMoreMenu, setShowMobileMoreMenu] = useState(false)
 
   // Modals & Action States
   const [showNewInvoiceModal, setShowNewInvoiceModal] = useState(false)
@@ -1115,17 +1121,29 @@ export default function InvoicingApp() {
       {mobileNav && <button onClick={() => setMobileNav(false)} className="fixed inset-0 z-20 bg-slate-900/20 lg:hidden" />}
 
       {/* MAIN CONTAINER */}
-      <div className="lg:pl-64">
-        <header className="sticky top-0 z-10 flex h-20 items-center justify-between border-b border-slate-200/80 bg-white/90 px-5 backdrop-blur sm:px-8">
+      <div className="lg:pl-64 pb-20 sm:pb-8">
+        <header className="sticky top-0 z-20 flex h-16 sm:h-20 items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 sm:px-8 backdrop-blur">
           <div className="flex items-center gap-3">
-            <button onClick={() => setMobileNav(true)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden">
+            <button onClick={() => setMobileNav(true)} className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-100 lg:hidden">
               <SlidersHorizontal className="size-5" />
             </button>
+            <div className="flex flex-col">
+              <p className="text-sm font-bold text-slate-900 leading-tight">{company?.name || 'Demo Business'}</p>
+              <p className="text-[10px] font-semibold text-slate-400 tracking-wider">SARL</p>
+            </div>
           </div>
-          <div className="flex items-center gap-3"></div>
+          <div className="flex items-center gap-2.5">
+            <button title="Notifications" className="relative rounded-full p-2 text-slate-500 hover:bg-slate-100 transition-colors">
+              <Bell className="size-5" />
+              <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-indigo-600" />
+            </button>
+            <div className="flex size-9 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white shadow-xs">
+              {user?.name ? user.name.slice(0, 2).toUpperCase() : 'DE'}
+            </div>
+          </div>
         </header>
 
-        <main className="mx-auto max-w-[1440px] p-5 sm:p-8">
+        <main className="mx-auto max-w-[1440px] p-4 sm:p-8">
           {/* HEADER BAR */}
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -1248,10 +1266,10 @@ export default function InvoicingApp() {
                               )}
                               <button
                                 onClick={() => handleDownloadPdf(inv._id)}
-                                className="inline-flex items-center rounded-lg border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-100 transition-colors"
+                                className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition-colors"
                                 title="Download PDF"
                               >
-                                <Download className="size-3.5" />
+                                <Download className="size-3.5 stroke-[2.5]" /> PDF
                               </button>
                             </div>
                           </td>
@@ -1272,99 +1290,257 @@ export default function InvoicingApp() {
           )}
 
           {/* VIEW: INVOICES LIST */}
-          {active === 'Invoices' && (
-            <div className="rounded-xl border border-slate-200/80 bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b border-slate-100 p-5">
-                <h2 className="font-semibold text-slate-900">All Invoices ({invoices.length})</h2>
-                <Button
-                  onClick={() => {
-                    setEditingInvoiceId(null)
-                    setSelectedCustomerId('')
-                    setInvoiceItems([{ productId: '', quantity: 1, unitPrice: 0, discount: 0 }])
-                    setShowNewInvoiceModal(true)
-                  }}
-                  className="bg-indigo-600 hover:bg-indigo-700"
-                >
-                  <Plus className="size-4" /> Create Invoice
-                </Button>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-400">
-                    <tr>
-                      <th className="px-5 py-3">Invoice #</th>
-                      <th className="px-5 py-3">Customer</th>
-                      <th className="px-5 py-3">Due Date</th>
-                      <th className="px-5 py-3">Total TTC</th>
-                      <th className="px-5 py-3">Amount Due</th>
-                      <th className="px-5 py-3">Status</th>
-                      <th className="px-5 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {invoices.map((inv: any) => (
-                      <tr key={inv._id} className="hover:bg-slate-50/60">
-                        <td className="px-5 py-4 font-semibold text-slate-800">{inv.invoiceNumber || 'DRAFT'}</td>
-                        <td className="px-5 py-4">{inv.customerId?.name || 'Customer'}</td>
-                        <td className="px-5 py-4 text-slate-500">{new Date(inv.dueDate).toLocaleDateString()}</td>
-                        <td className="px-5 py-4 font-bold text-slate-900">{formatCurrency(inv.totalTTC, inv.currency)}</td>
-                        <td className="px-5 py-4 font-medium text-rose-600">{formatCurrency(inv.amountDue, inv.currency)}</td>
-                        <td className="px-5 py-4">
-                          <StatusBadge status={inv.status} />
-                        </td>
-                        <td className="px-5 py-4 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {inv.status === 'draft' && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleEditInvoice(inv)}
-                                  className="h-8 text-xs border-indigo-200 text-indigo-600 hover:bg-indigo-50 rounded-lg"
-                                >
-                                  <Pencil className="size-3.5 mr-1" /> Edit
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleFinalizeInvoice(inv._id)}
-                                  className="h-8 text-xs border-emerald-200 text-emerald-600 hover:bg-emerald-50 rounded-lg"
-                                >
-                                  <FileCheck2 className="size-3.5 mr-1" /> Finalize
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleDeleteInvoice(inv._id)}
-                                  className="h-8 text-xs border-rose-200 text-rose-600 hover:bg-rose-50 rounded-lg"
-                                >
-                                  <Trash2 className="size-3.5 mr-1" /> Delete
-                                </Button>
-                              </>
-                            )}
-                            <Button size="sm" variant="outline" onClick={() => handleDownloadPdf(inv._id)} className="h-8 text-xs rounded-lg">
-                              <Download className="size-3.5 mr-1" /> PDF
-                            </Button>
-                          </div>
-                        </td>
+          {active === 'Invoices' && (() => {
+            const filteredInvoices = invoices.filter((inv) => {
+              if (!invoiceSearchQuery.trim()) return true
+              const q = invoiceSearchQuery.toLowerCase()
+              const invNum = (inv.invoiceNumber || '').toLowerCase()
+              const custName = (inv.customerId?.name || '').toLowerCase()
+              const status = (inv.status || '').toLowerCase()
+              return invNum.includes(q) || custName.includes(q) || status.includes(q)
+            })
+
+            return (
+              <div className="space-y-4">
+                {/* Search & Filter bar for mobile/desktop */}
+                <div className="flex items-center gap-2.5">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3.5 top-3 size-4 text-slate-400 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Search invoices..."
+                      value={invoiceSearchQuery}
+                      onChange={(e: any) => setInvoiceSearchQuery(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm font-medium text-slate-800 shadow-xs outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    title="Filter Invoices"
+                    className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 shadow-xs hover:bg-slate-50 active:scale-95 transition-all"
+                  >
+                    <SlidersHorizontal className="size-4 text-slate-500" />
+                  </button>
+                </div>
+
+                {/* Subtitle Header */}
+                <div className="flex items-center justify-between pt-1">
+                  <h2 className="text-base font-bold text-slate-900">All Invoices ({filteredInvoices.length})</h2>
+                  <Button
+                    onClick={() => {
+                      setEditingInvoiceId(null)
+                      setSelectedCustomerId('')
+                      setInvoiceItems([{ productId: '', quantity: 1, unitPrice: 0, discount: 0 }])
+                      setShowNewInvoiceModal(true)
+                    }}
+                    className="hidden sm:flex bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    <Plus className="size-4" /> Create Invoice
+                  </Button>
+                </div>
+
+                {/* Mobile Cards View (< sm) */}
+                <div className="grid gap-3.5 sm:hidden">
+                  {filteredInvoices.map((inv: any) => (
+                    <div key={inv._id} className="rounded-2xl border border-slate-200/90 bg-white p-4.5 shadow-xs space-y-3">
+                      {/* Card Header: INV # & Status */}
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                        <span className="font-bold text-slate-900 text-sm tracking-tight">{inv.invoiceNumber || 'DRAFT'}</span>
+                        <StatusBadge status={inv.status} />
+                      </div>
+
+                      {/* Details Grid */}
+                      <div className="space-y-2 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-2 text-slate-500 font-medium">
+                            <User className="size-3.5 text-slate-400" />
+                            Customer
+                          </span>
+                          <span className="font-semibold text-slate-800">{inv.customerId?.name || 'Customer'}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-2 text-slate-500 font-medium">
+                            <FileText className="size-3.5 text-slate-400" />
+                            Due date
+                          </span>
+                          <span className="font-medium text-slate-700">{new Date(inv.dueDate || inv.invoiceDate).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-2 text-slate-500 font-medium">
+                            <FileCheck2 className="size-3.5 text-slate-400" />
+                            Total TTC
+                          </span>
+                          <span className="font-bold text-slate-900 text-sm">{formatCurrency(inv.totalTTC, inv.currency)}</span>
+                        </div>
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="flex items-center gap-2 text-slate-500 font-medium">
+                            <WalletCards className="size-3.5 text-indigo-500" />
+                            Amount due
+                          </span>
+                          <span className="font-extrabold text-indigo-700 text-sm">{formatCurrency(inv.amountDue, inv.currency)}</span>
+                        </div>
+                      </div>
+
+                      {/* Card Actions Footer */}
+                      <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
+                        <button
+                          onClick={() => handleDownloadPdf(inv._id)}
+                          className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 active:scale-95 transition-all"
+                        >
+                          <Download className="size-4 stroke-[2.5]" /> Download PDF
+                        </button>
+                        <div className="flex items-center gap-1">
+                          {inv.status === 'draft' && (
+                            <>
+                              <button
+                                onClick={() => handleEditInvoice(inv)}
+                                className="rounded-xl p-2 text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                title="Edit Draft"
+                              >
+                                <Pencil className="size-4" />
+                              </button>
+                              <button
+                                onClick={() => handleFinalizeInvoice(inv._id)}
+                                className="rounded-xl p-2 text-emerald-600 hover:bg-emerald-50 transition-colors"
+                                title="Finalize Invoice"
+                              >
+                                <FileCheck2 className="size-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteInvoice(inv._id)}
+                                className="rounded-xl p-2 text-rose-600 hover:bg-rose-50 transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 className="size-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {filteredInvoices.length === 0 && (
+                    <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-400">
+                      No invoices found.
+                    </div>
+                  )}
+                </div>
+
+                {/* Desktop Table View (>= sm) */}
+                <div className="hidden sm:block rounded-xl border border-slate-200/80 bg-white shadow-sm overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-400">
+                      <tr>
+                        <th className="px-5 py-3">Invoice #</th>
+                        <th className="px-5 py-3">Customer</th>
+                        <th className="px-5 py-3">Due Date</th>
+                        <th className="px-5 py-3">Total TTC</th>
+                        <th className="px-5 py-3">Amount Due</th>
+                        <th className="px-5 py-3">Status</th>
+                        <th className="px-5 py-3 text-right">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredInvoices.map((inv: any) => (
+                        <tr key={inv._id} className="hover:bg-slate-50/60">
+                          <td className="px-5 py-4 font-semibold text-slate-800">{inv.invoiceNumber || 'DRAFT'}</td>
+                          <td className="px-5 py-4">{inv.customerId?.name || 'Customer'}</td>
+                          <td className="px-5 py-4 text-slate-500">{new Date(inv.dueDate || inv.invoiceDate).toLocaleDateString()}</td>
+                          <td className="px-5 py-4 font-bold text-slate-900">{formatCurrency(inv.totalTTC, inv.currency)}</td>
+                          <td className="px-5 py-4 font-medium text-rose-600">{formatCurrency(inv.amountDue, inv.currency)}</td>
+                          <td className="px-5 py-4">
+                            <StatusBadge status={inv.status} />
+                          </td>
+                          <td className="px-5 py-4 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {inv.status === 'draft' && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleEditInvoice(inv)}
+                                    className="h-8 text-xs border-indigo-200 text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                                  >
+                                    <Pencil className="size-3.5 mr-1" /> Edit
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleFinalizeInvoice(inv._id)}
+                                    className="h-8 text-xs border-emerald-200 text-emerald-600 hover:bg-emerald-50 rounded-lg"
+                                  >
+                                    <FileCheck2 className="size-3.5 mr-1" /> Finalize
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleDeleteInvoice(inv._id)}
+                                    className="h-8 text-xs border-rose-200 text-rose-600 hover:bg-rose-50 rounded-lg"
+                                  >
+                                    <Trash2 className="size-3.5 mr-1" /> Delete
+                                  </Button>
+                                </>
+                              )}
+                              <Button
+                                size="sm"
+                                onClick={() => handleDownloadPdf(inv._id)}
+                                className="h-9 px-4 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-xs transition-all"
+                              >
+                                <Download className="size-4 mr-1.5 stroke-[2.5]" /> PDF
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          )}
+            )
+          })()}
 
           {/* VIEW: CUSTOMERS */}
           {active === 'Customers' && (
-            <div className="rounded-xl border border-slate-200/80 bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b border-slate-100 p-5">
-                <h2 className="font-semibold text-slate-900">Customer Directory ({customers.length})</h2>
-                <Button onClick={() => { setEditingCustomerId(null); setNewCustName(''); setNewCustCompany(''); setNewCustEmail(''); setNewCustPhone(''); setNewCustTaxId(''); setShowNewCustomerModal(true); }} className="bg-indigo-600 hover:bg-indigo-700">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-bold text-slate-900">Customer Directory ({customers.length})</h2>
+                <Button onClick={() => { setEditingCustomerId(null); setNewCustName(''); setNewCustCompany(''); setNewCustEmail(''); setNewCustPhone(''); setNewCustTaxId(''); setShowNewCustomerModal(true); }} className="bg-indigo-600 hover:bg-indigo-700 text-xs sm:text-sm">
                   <Plus className="size-4" /> Add Customer
                 </Button>
               </div>
-              <div className="overflow-x-auto">
+
+              {/* Mobile Card List (< sm) */}
+              <div className="grid gap-3.5 sm:hidden">
+                {customers.map((c: any) => (
+                  <div key={c._id} className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-900 text-sm">{c.name}</span>
+                      {c.companyName && <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full">{c.companyName}</span>}
+                    </div>
+                    <div className="space-y-1 text-xs text-slate-600">
+                      {c.email && <div className="flex items-center gap-2"><span>✉</span> {c.email}</div>}
+                      {c.phone && <div className="flex items-center gap-2"><span>📞</span> {c.phone}</div>}
+                      {c.taxId && <div className="flex items-center gap-2 font-mono text-[11px] text-slate-400"><span>🆔</span> {c.taxId}</div>}
+                    </div>
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                      <Button size="sm" variant="outline" onClick={() => handleEditCustomer(c)} className="h-8 text-xs border-indigo-200 text-indigo-600 hover:bg-indigo-50 rounded-xl">
+                        <Pencil className="size-3.5 mr-1" /> Edit
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => handleDeleteCustomer(c._id)} className="h-8 text-xs border-rose-200 text-rose-600 hover:bg-rose-50 rounded-xl">
+                        <Trash2 className="size-3.5 mr-1" /> Delete
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {customers.length === 0 && (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-400">
+                    No customers added yet.
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop Table View (>= sm) */}
+              <div className="hidden sm:block rounded-xl border border-slate-200/80 bg-white shadow-sm overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-400">
                     <tr>
@@ -1618,17 +1794,31 @@ export default function InvoicingApp() {
 
       {/* MODAL: CREATE INVOICE */}
       {showNewInvoiceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-5 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h2 className="text-lg font-bold text-slate-900">Create New Invoice Draft</h2>
-              <button onClick={() => setShowNewInvoiceModal(false)}>
-                <X className="size-5 text-slate-400 hover:text-slate-600" />
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/40 sm:p-4">
+          <div className="w-full sm:max-w-2xl rounded-t-3xl sm:rounded-2xl bg-white p-5 sm:p-6 shadow-2xl h-[92vh] sm:h-auto sm:max-h-[90vh] flex flex-col justify-between overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowNewInvoiceModal(false)}
+                className="flex items-center gap-1 text-slate-600 hover:text-slate-900 transition-colors"
+              >
+                <ChevronLeft className="size-5" />
+              </button>
+              <h2 className="text-base sm:text-lg font-bold text-slate-900">Create Invoice</h2>
+              <button
+                type="button"
+                onClick={() => setShowNewInvoiceModal(false)}
+                className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+              >
+                <X className="size-5" />
               </button>
             </div>
-            <div className="mt-4 grid gap-4">
+
+            {/* Scrollable Form Body */}
+            <div className="flex-1 overflow-y-auto py-4 space-y-5 pr-1">
               <div>
-                <label className="text-xs font-semibold uppercase text-slate-500">Customer *</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">CUSTOMER *</label>
                 <CustomerSelectPopover
                   customers={customers}
                   value={selectedCustomerId}
@@ -1646,104 +1836,132 @@ export default function InvoicingApp() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold uppercase text-slate-500">Due Date</label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">DUE DATE</label>
                 <input
                   type="date"
                   value={invoiceDueDate}
                   onChange={(e: any) => setInvoiceDueDate(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-200 p-2.5 text-sm"
+                  className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-white p-3 text-sm font-medium text-slate-800 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
-              {/* TAX / VAT CHECKBOX */}
-              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/60 p-3">
-                <div className="flex items-center gap-2.5">
+              {/* TAX / VAT CHECKBOX CARD */}
+              <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5">
+                <div className="flex items-center gap-3">
                   <input
                     type="checkbox"
                     id="applyVatCheckbox"
                     checked={applyVat}
                     onChange={(e: any) => setApplyVat(e.target.checked)}
-                    className="size-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    className="size-4.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                   />
-                  <label htmlFor="applyVatCheckbox" className="text-xs font-semibold text-slate-800 cursor-pointer select-none">
+                  <label htmlFor="applyVatCheckbox" className="text-xs font-bold text-slate-800 cursor-pointer select-none">
                     Calculate &amp; Apply Taxes / VAT (19% TVA)
                   </label>
                 </div>
-                <span className={`text-[11px] font-medium px-2 py-0.5 rounded ${applyVat ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-600'}`}>
-                  {applyVat ? 'VAT Included' : 'No VAT (Tax-Exempt)'}
+                <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${applyVat ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-600'}`}>
+                  {applyVat ? 'VAT Included' : 'No VAT'}
                 </span>
               </div>
 
-              {/* ITEM LINES */}
-              <div>
-                <label className="text-xs font-semibold uppercase text-slate-500">Line Items</label>
+              {/* LINE ITEMS */}
+              <div className="space-y-3">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">LINE ITEMS</label>
                 {invoiceItems.map((item: any, idx: number) => (
-                  <div key={idx} className="mt-2 flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3">
-                    <ProductSelectPopover
-                      products={products}
-                      value={item.productId}
-                      onChange={(pid, price) => {
-                        const copy = [...invoiceItems]
-                        copy[idx].productId = pid
-                        if (price !== undefined) copy[idx].unitPrice = price
-                        setInvoiceItems(copy)
-                      }}
-                      onAddNewProduct={(initialName = '') => {
-                        setActiveLineItemIdx(idx)
-                        setEditingProductId(null)
-                        setNewProdName(initialName)
-                        setNewProdRef('')
-                        setNewProdOrigin('USA')
-                        setNewProdPrice('10.000')
-                        setNewProdStock('20')
-                        setShowNewProductModal(true)
-                      }}
-                    />
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      <span className="text-xs text-slate-400">Qty:</span>
-                      <input
-                        type="number"
-                        min="1"
-                        placeholder="Qty"
-                        value={item.quantity}
-                        onChange={(e: any) => {
+                  <div key={idx} className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3 shadow-2xs">
+                    <div>
+                      <span className="text-[11px] font-bold text-slate-400 uppercase">Product *</span>
+                      <ProductSelectPopover
+                        products={products}
+                        value={item.productId}
+                        onChange={(pid, price) => {
                           const copy = [...invoiceItems]
-                          copy[idx].quantity = parseFloat(e.target.value) || 1
+                          copy[idx].productId = pid
+                          if (price !== undefined) copy[idx].unitPrice = price
                           setInvoiceItems(copy)
                         }}
-                        className="w-20 rounded-lg border border-slate-200 p-2 text-center text-sm font-semibold"
+                        onAddNewProduct={(initialName = '') => {
+                          setActiveLineItemIdx(idx)
+                          setEditingProductId(null)
+                          setNewProdName(initialName)
+                          setNewProdRef('')
+                          setNewProdOrigin('USA')
+                          setNewProdPrice('10.000')
+                          setNewProdStock('20')
+                          setShowNewProductModal(true)
+                        }}
                       />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setInvoiceItems(invoiceItems.filter((_: any, i: number) => i !== idx))}
-                      className="shrink-0 rounded p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
+
+                    <div className="flex items-center justify-between gap-3 pt-1 border-t border-slate-100">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-slate-500">Quantity *</span>
+                        <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 p-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const copy = [...invoiceItems]
+                              const q = Math.max(1, (copy[idx].quantity || 1) - 1)
+                              copy[idx].quantity = q
+                              setInvoiceItems(copy)
+                            }}
+                            className="flex size-7 items-center justify-center rounded-lg bg-white text-slate-600 shadow-xs hover:bg-slate-100 active:scale-95"
+                          >
+                            <Minus className="size-3.5" />
+                          </button>
+                          <span className="w-9 text-center text-xs font-bold text-slate-800">{item.quantity}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const copy = [...invoiceItems]
+                              copy[idx].quantity = (copy[idx].quantity || 1) + 1
+                              setInvoiceItems(copy)
+                            }}
+                            className="flex size-7 items-center justify-center rounded-lg bg-white text-slate-600 shadow-xs hover:bg-slate-100 active:scale-95"
+                          >
+                            <Plus className="size-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setInvoiceItems(invoiceItems.filter((_: any, i: number) => i !== idx))}
+                        className="rounded-xl p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                        title="Delete line item"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
-                <Button
+
+                <button
                   type="button"
-                  variant="outline"
-                  size="sm"
                   onClick={() => setInvoiceItems([...invoiceItems, { productId: '', quantity: 1, unitPrice: 0, discount: 0 }])}
-                  className="mt-3 text-xs"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-slate-300 py-3 text-xs font-bold text-slate-600 hover:border-indigo-400 hover:bg-indigo-50/50 transition-colors"
                 >
-                  <Plus className="mr-1 size-3.5" /> Add Line Item
-                </Button>
+                  <Plus className="size-4 text-indigo-600" /> Add Line Item
+                </button>
               </div>
             </div>
 
-            <div className="mt-6 flex flex-wrap items-center justify-end gap-2 border-t pt-4">
-              <Button variant="outline" onClick={() => setShowNewInvoiceModal(false)}>
-                Cancel
+            {/* Sticky Action Footer */}
+            <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-4 shrink-0">
+              <Button
+                variant="outline"
+                onClick={() => handleCreateInvoice(false)}
+                disabled={isSubmitting}
+                className="flex-1 sm:flex-none rounded-2xl border-indigo-200 text-indigo-700 hover:bg-indigo-50 py-3 font-semibold text-xs sm:text-sm"
+              >
+                {isSubmitting ? <Loader2 className="size-4 animate-spin mr-1" /> : 'Save Draft'}
               </Button>
-              <Button onClick={() => handleCreateInvoice(false)} disabled={isSubmitting} variant="outline" className="border-indigo-200 text-indigo-700 hover:bg-indigo-50">
-                {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : 'Save Draft'}
-              </Button>
-              <Button onClick={() => handleCreateInvoice(true)} disabled={isSubmitting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : 'Finalize & Issue Invoice'}
+              <Button
+                onClick={() => handleCreateInvoice(true)}
+                disabled={isSubmitting}
+                className="flex-1 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white py-3 font-semibold text-xs sm:text-sm shadow-sm"
+              >
+                {isSubmitting ? <Loader2 className="size-4 animate-spin mr-1" /> : 'Finalize & Issue Invoice'}
               </Button>
             </div>
           </div>
@@ -1973,6 +2191,111 @@ export default function InvoicingApp() {
                   </button>
                 </span>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FLOATING ACTION BUTTON (FAB) FOR MOBILE */}
+      <button
+        onClick={() => {
+          setEditingInvoiceId(null)
+          setSelectedCustomerId('')
+          setInvoiceItems([{ productId: '', quantity: 1, unitPrice: 0, discount: 0 }])
+          setShowNewInvoiceModal(true)
+        }}
+        className="fixed bottom-20 right-5 z-40 flex size-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-xl hover:bg-indigo-700 active:scale-95 transition-all sm:hidden"
+        aria-label="Create Invoice"
+      >
+        <Plus className="size-7 stroke-[2.5]" />
+      </button>
+
+      {/* BOTTOM NAVIGATION BAR FOR MOBILE */}
+      <div className="fixed bottom-0 inset-x-0 z-40 flex h-16 items-center justify-around border-t border-slate-200 bg-white/95 backdrop-blur sm:hidden px-2 shadow-lg">
+        <button
+          onClick={() => setActive('Overview')}
+          className={`flex flex-col items-center gap-1 text-[11px] font-medium transition-colors ${
+            active === 'Overview' ? 'text-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <LayoutDashboard className="size-5" />
+          Overview
+        </button>
+        <button
+          onClick={() => setActive('Invoices')}
+          className={`relative flex flex-col items-center gap-1 text-[11px] font-medium transition-colors ${
+            active === 'Invoices' ? 'text-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <FileText className="size-5" />
+          Invoices
+          {active === 'Invoices' && <span className="absolute -bottom-1 h-0.5 w-7 rounded-full bg-indigo-600" />}
+        </button>
+        <button
+          onClick={() => setActive('Customers')}
+          className={`flex flex-col items-center gap-1 text-[11px] font-medium transition-colors ${
+            active === 'Customers' ? 'text-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <Users className="size-5" />
+          Customers
+        </button>
+        <button
+          onClick={() => setShowMobileMoreMenu(true)}
+          className={`flex flex-col items-center gap-1 text-[11px] font-medium transition-colors ${
+            ['Products', 'Reports', 'Settings'].includes(active) ? 'text-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <MoreHorizontal className="size-5" />
+          More
+        </button>
+      </div>
+
+      {/* MOBILE MORE MENU DRAWER */}
+      {showMobileMoreMenu && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-slate-900/40 backdrop-blur-xs sm:hidden">
+          <div className="rounded-t-3xl bg-white p-6 shadow-2xl animate-in slide-in-from-bottom duration-200 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="text-base font-bold text-slate-900">More Options</h3>
+              <button onClick={() => setShowMobileMoreMenu(false)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100">
+                <X className="size-5" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => { setActive('Products'); setShowMobileMoreMenu(false); }}
+                className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left font-semibold text-xs transition-colors ${
+                  active === 'Products' ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-100 bg-slate-50 text-slate-800 hover:bg-slate-100'
+                }`}
+              >
+                <Package className="size-5 text-indigo-500" />
+                Products
+              </button>
+              <button
+                onClick={() => { setActive('Reports'); setShowMobileMoreMenu(false); }}
+                className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left font-semibold text-xs transition-colors ${
+                  active === 'Reports' ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-100 bg-slate-50 text-slate-800 hover:bg-slate-100'
+                }`}
+              >
+                <Boxes className="size-5 text-indigo-500" />
+                Reports
+              </button>
+              <button
+                onClick={() => { setActive('Settings'); setShowMobileMoreMenu(false); }}
+                className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left font-semibold text-xs transition-colors ${
+                  active === 'Settings' ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-100 bg-slate-50 text-slate-800 hover:bg-slate-100'
+                }`}
+              >
+                <Settings className="size-5 text-indigo-500" />
+                Settings
+              </button>
+              <button
+                onClick={() => { handleLogout(); setShowMobileMoreMenu(false); }}
+                className="flex items-center gap-3 rounded-2xl border border-rose-100 bg-rose-50 p-3.5 text-left font-semibold text-xs text-rose-600 hover:bg-rose-100 transition-colors"
+              >
+                <LogOut className="size-5 text-rose-500" />
+                Logout
+              </button>
             </div>
           </div>
         </div>
