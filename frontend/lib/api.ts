@@ -2,7 +2,15 @@
  * Centralized API Client connecting Next.js Frontend to Express Backend
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const getApiBaseUrl = (): string => {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  if (typeof window !== 'undefined' && window.location.hostname) {
+    return `http://${window.location.hostname}:5000/api`;
+  }
+  return 'http://localhost:5000/api';
+};
 
 export const getToken = (): string | null => {
   if (typeof window === 'undefined') return null;
@@ -35,7 +43,8 @@ async function apiRequest<T = any>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
   try {
     const res = await fetch(url, {
@@ -50,6 +59,9 @@ async function apiRequest<T = any>(
     return data;
   } catch (error: any) {
     console.error(`API Error on ${endpoint}:`, error);
+    if (error.name === 'TypeError' && (error.message || '').includes('fetch')) {
+      throw new Error(`Cannot connect to backend server at ${baseUrl}. Please ensure backend is running.`);
+    }
     throw error;
   }
 }
@@ -165,7 +177,7 @@ export const invoiceApi = {
     apiRequest(`/invoices/${invoiceId}/payments`, { method: 'POST', body: JSON.stringify(payload) }),
   getPdfBlobUrl: async (invoiceId: string): Promise<string> => {
     const token = getToken();
-    const res = await fetch(`${API_BASE_URL}/invoices/${invoiceId}/pdf`, {
+    const res = await fetch(`${getApiBaseUrl()}/invoices/${invoiceId}/pdf`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) throw new Error('Failed to generate PDF');
