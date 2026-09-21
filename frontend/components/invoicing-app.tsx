@@ -9,6 +9,7 @@ import {
   Bell,
   Boxes,
   Building2,
+  CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -18,6 +19,7 @@ import {
   FileCheck2,
   FileText,
   Filter,
+  Info,
   LayoutDashboard,
   Loader2,
   Lock,
@@ -39,6 +41,7 @@ import {
   Users,
   WalletCards,
   X,
+  XCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -586,6 +589,16 @@ export default function InvoicingApp() {
   const [invoiceSearchQuery, setInvoiceSearchQuery] = useState('')
   const [showMobileMoreMenu, setShowMobileMoreMenu] = useState(false)
 
+  // Professional Toast State
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
+
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ message, type })
+    setTimeout(() => {
+      setToast(null)
+    }, 4000)
+  }, [])
+
   // Modals & Action States
   const [showNewInvoiceModal, setShowNewInvoiceModal] = useState(false)
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null)
@@ -751,12 +764,12 @@ export default function InvoicingApp() {
   // Create / Update Invoice Handler (with option to Finalize directly)
   const handleCreateInvoice = async (shouldFinalize: boolean = false) => {
     if (!selectedCustomerId) {
-      alert('Please select a customer')
+      showToast('Please select a customer', 'error')
       return
     }
     const validItems = invoiceItems.filter((i: { productId: string; quantity: number }) => i.productId && i.quantity > 0)
     if (validItems.length === 0) {
-      alert('Please add at least one product with quantity')
+      showToast('Please add at least one product with quantity', 'error')
       return
     }
 
@@ -785,10 +798,11 @@ export default function InvoicingApp() {
 
       setShowNewInvoiceModal(false)
       setEditingInvoiceId(null)
+      showToast(shouldFinalize ? 'Invoice finalized & created successfully!' : 'Invoice draft saved successfully!')
       loadWorkspaceData()
       setActive('Invoices')
     } catch (err: any) {
-      alert(err.message || 'Error saving invoice')
+      showToast(err.message || 'Error saving invoice', 'error')
     } finally {
       setIsSubmitting(false)
     }
@@ -799,9 +813,10 @@ export default function InvoicingApp() {
     if (!confirm('Finalizing an invoice assigns an official invoice number (e.g. INV-2026-0001), updates inventory stock, and locks the invoice. Continue?')) return
     try {
       await invoiceApi.finalize(invoiceId)
+      showToast('Invoice finalized successfully!')
       loadWorkspaceData()
     } catch (err: any) {
-      alert(err.message || 'Failed to finalize invoice')
+      showToast(err.message || 'Failed to finalize invoice', 'error')
     }
   }
 
@@ -830,9 +845,10 @@ export default function InvoicingApp() {
     if (!confirm('Are you sure you want to delete this draft invoice?')) return
     try {
       await invoiceApi.delete(invoiceId)
+      showToast('Invoice deleted successfully!')
       loadWorkspaceData()
     } catch (err: any) {
-      alert(err.message || 'Failed to delete invoice')
+      showToast(err.message || 'Failed to delete invoice', 'error')
     }
   }
 
@@ -842,14 +858,14 @@ export default function InvoicingApp() {
       const url = await invoiceApi.getPdfBlobUrl(invoiceId)
       window.open(url, '_blank')
     } catch (err: any) {
-      alert(err.message || 'Failed to generate PDF')
+      showToast(err.message || 'Failed to generate PDF', 'error')
     }
   }
 
   // Record Payment Handler
   const handleRecordPayment = async () => {
     if (!showPaymentModal || !paymentAmount || parseFloat(paymentAmount) <= 0) {
-      alert('Please enter a valid payment amount')
+      showToast('Please enter a valid payment amount', 'error')
       return
     }
     setIsSubmitting(true)
@@ -862,9 +878,10 @@ export default function InvoicingApp() {
       setShowPaymentModal(null)
       setPaymentAmount('')
       setPaymentRef('')
+      showToast('Payment recorded successfully!')
       loadWorkspaceData()
     } catch (err: any) {
-      alert(err.message || 'Failed to record payment')
+      showToast(err.message || 'Failed to record payment', 'error')
     } finally {
       setIsSubmitting(false)
     }
@@ -888,11 +905,11 @@ export default function InvoicingApp() {
       })
       if (res.data) {
         setCompany(res.data)
-        alert('Company Billing Profile updated successfully!')
+        showToast('Company Billing Profile updated successfully!')
         loadWorkspaceData()
       }
     } catch (err: any) {
-      alert(err.message || 'Failed to update company profile')
+      showToast(err.message || 'Failed to update company profile', 'error')
     } finally {
       setIsSubmitting(false)
     }
@@ -913,9 +930,10 @@ export default function InvoicingApp() {
     if (!confirm('Are you sure you want to delete this customer?')) return
     try {
       await customerApi.delete(id)
+      showToast('Customer deleted successfully!')
       loadWorkspaceData()
     } catch (err: any) {
-      alert(err.message || 'Failed to delete customer')
+      showToast(err.message || 'Failed to delete customer', 'error')
     }
   }
 
@@ -950,9 +968,10 @@ export default function InvoicingApp() {
       if (savedCust && savedCust._id) {
         setSelectedCustomerId(savedCust._id)
       }
+      showToast(editingCustomerId ? 'Customer updated successfully!' : 'New customer added successfully!')
       loadWorkspaceData()
     } catch (err: any) {
-      alert(err.message || 'Failed to save customer')
+      showToast(err.message || 'Failed to save customer', 'error')
     } finally {
       setIsSubmitting(false)
     }
@@ -974,9 +993,10 @@ export default function InvoicingApp() {
     if (!confirm('Are you sure you want to delete this product?')) return
     try {
       await productApi.delete(id)
+      showToast('Product deleted successfully!')
       loadWorkspaceData()
     } catch (err: any) {
-      alert(err.message || 'Failed to delete product')
+      showToast(err.message || 'Failed to delete product', 'error')
     }
   }
 
@@ -1018,9 +1038,10 @@ export default function InvoicingApp() {
         }
         setActiveLineItemIdx(null)
       }
+      showToast(editingProductId ? 'Product updated successfully!' : 'New product added successfully!')
       loadWorkspaceData()
     } catch (err: any) {
-      alert(err.message || 'Failed to save product')
+      showToast(err.message || 'Failed to save product', 'error')
     } finally {
       setIsSubmitting(false)
     }
@@ -2298,6 +2319,31 @@ export default function InvoicingApp() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* PROFESSIONAL FLOATING TOAST NOTIFICATION */}
+      {toast && (
+        <div className="fixed top-5 right-5 z-[100] flex items-center gap-3 rounded-2xl border border-slate-200/90 bg-white/95 p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-4 duration-200 min-w-[320px] max-w-md">
+          {toast.type === 'success' && (
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 shadow-xs">
+              <CheckCircle2 className="size-5" />
+            </div>
+          )}
+          {toast.type === 'error' && (
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600 shadow-xs">
+              <XCircle className="size-5" />
+            </div>
+          )}
+          {toast.type === 'info' && (
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 shadow-xs">
+              <Info className="size-5" />
+            </div>
+          )}
+          <div className="flex-1 text-xs font-semibold text-slate-800 leading-snug">{toast.message}</div>
+          <button onClick={() => setToast(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
+            <X className="size-4" />
+          </button>
         </div>
       )}
     </div>
