@@ -3,18 +3,15 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Ledgerly — Invoicing & Billing',
-  description: 'A modern invoicing and billing workspace for growing businesses.',
-  generator: 'v0.app',
+  title: 'Demo Business — Invoicing & Billing',
+  description: 'Enterprise cloud invoicing, customer management, and billing system.',
+  manifest: '/manifest.json',
   icons: {
     icon: [
       {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
+        url: '/icon-192.png',
+        sizes: '192x192',
+        type: 'image/png',
       },
       {
         url: '/icon.svg',
@@ -23,14 +20,16 @@ export const metadata: Metadata = {
     ],
     apple: '/apple-icon.png',
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Invoices',
+  },
 }
 
 export const viewport: Viewport = {
   colorScheme: 'light dark',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: 'white' },
-    { media: '(prefers-color-scheme: dark)', color: 'black' },
-  ],
+  themeColor: '#4f46e5',
 }
 
 export default function RootLayout({

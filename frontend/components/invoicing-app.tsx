@@ -599,6 +599,37 @@ export default function InvoicingApp() {
     }, 4000)
   }, [])
 
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [showInstallBanner, setShowInstallBanner] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch((err) => console.log('SW reg error:', err))
+    }
+
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault()
+      setDeferredPrompt(e)
+      setShowInstallBanner(true)
+    }
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+  }, [])
+
+  const handleInstallAppClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt()
+      const choiceResult = await deferredPrompt.userChoice
+      if (choiceResult && choiceResult.outcome === 'accepted') {
+        showToast('App installed on device successfully!')
+      }
+      setDeferredPrompt(null)
+    }
+    setShowInstallBanner(false)
+  }
+
   // Modals & Action States
   const [showNewInvoiceModal, setShowNewInvoiceModal] = useState(false)
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null)
@@ -1075,9 +1106,7 @@ export default function InvoicingApp() {
         }`}
       >
         <div className="flex h-20 items-center gap-3 border-b border-slate-100 px-6">
-          <div className="flex size-9 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm shadow-indigo-200">
-            <WalletCards className="size-5" />
-          </div>
+          <img src="/app-logo.jpg" alt="Logo" className="size-10 rounded-xl object-cover shadow-sm ring-1 ring-slate-200/80" />
           <div>
             <p className="text-base font-bold tracking-tight text-slate-900">{company?.name || 'Invoicing System'}</p>
             <p className="text-[10px] font-medium uppercase tracking-widest text-slate-400">Enterprise Cloud</p>
@@ -1148,6 +1177,7 @@ export default function InvoicingApp() {
             <button onClick={() => setMobileNav(true)} className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-100 lg:hidden">
               <SlidersHorizontal className="size-5" />
             </button>
+            <img src="/app-logo.jpg" alt="Logo" className="size-9 rounded-xl object-cover shadow-xs ring-1 ring-slate-200" />
             <div className="flex flex-col">
               <p className="text-sm font-bold text-slate-900 leading-tight">{company?.name || 'Demo Business'}</p>
               <p className="text-[10px] font-semibold text-slate-400 tracking-wider">SARL</p>
@@ -2344,6 +2374,36 @@ export default function InvoicingApp() {
           <button onClick={() => setToast(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
             <X className="size-4" />
           </button>
+        </div>
+      )}
+
+      {/* PWA INSTALL PROMPT BANNER */}
+      {showInstallBanner && (
+        <div className="fixed top-4 inset-x-4 sm:left-auto sm:right-6 sm:max-w-md z-[110] flex items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-white p-4 shadow-2xl backdrop-blur-md animate-in slide-in-from-top-6 duration-300">
+          <div className="flex items-center gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl overflow-hidden shadow-xs ring-1 ring-slate-200">
+              <img src="/app-logo.jpg" alt="App Logo" className="size-full object-cover" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-900">Install Invoicing App</p>
+              <p className="text-xs text-slate-500">Install on phone or PC for 1-tap fast access!</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleInstallAppClick}
+              className="rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 active:scale-95 transition-all whitespace-nowrap"
+            >
+              Install
+            </button>
+            <button
+              onClick={() => setShowInstallBanner(false)}
+              className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+              title="Not now"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
         </div>
       )}
     </div>
