@@ -1,7 +1,7 @@
 {
-  "name": "Demo Business Invoicing",
-  "short_name": "Invoices",
-  "description": "Enterprise cloud invoicing, customer management, and billing system.",
+  "name": "Invoix",
+  "short_name": "Invoix",
+  "description": "Professional billing, invoicing & client management.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f8fafc",

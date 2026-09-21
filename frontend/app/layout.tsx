@@ -3,8 +3,8 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Demo Business — Invoicing & Billing',
-  description: 'Enterprise cloud invoicing, customer management, and billing system.',
+  title: 'Invoix — Professional Billing & Invoicing',
+  description: 'Professional billing, invoicing & client management platform.',
   manifest: '/manifest.json',
   icons: {
     icon: [
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Invoices',
+    title: 'Invoix',
   },
 }
 
